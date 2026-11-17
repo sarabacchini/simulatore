@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Simulatore Forza Magnetica sul Filo - Regola della Mano Destra</title>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --accent: #2563eb;
+    --south: #16a34a;
+    --north: #dc2626;
+    --field-b: #d946ef;
+    --current-i: #2563eb;
+    --force-f: #f59e0b;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .preset-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 14px;
+    padding: 14px;
+    flex: 1;
+  }
+
+  @media (max-width: 920px) {
+    .main-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .canvas-card {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    position: relative;
+    min-height: 430px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  canvas#simCanvas {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  canvas#simCanvas:active {
+    cursor: grabbing;
+  }
+
+  .canvas-hint {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border: 1px solid #e2e8f0;
+    pointer-events: none;
+  }
+
+  .status-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    right: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .controls-card {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+
+  .control-section {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 14px;
+  }
+
+  .control-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .section-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 0 0 10px 0;
+  }
+
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 32px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .hand-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .hand-caption {
+    font-size: 0.82rem;
+    color: var(--text);
+    margin-top: 6px;
+    line-height: 1.35;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Forza Magnetica su un Filo (F = i L &times; B)</h1>
+  <div class="preset-group">
+    <button id="btnCase1" class="active" onclick="setCase(1)">Caso 1: Corrente i &uarr;</button>
+    <button id="btnCase2" onclick="setCase(2)">Caso 2: Corrente i &darr;</button>
+  </div>
+</header>
+
+<div class="main-layout">
+  <div class="canvas-card">
+    <div class="canvas-hint">Trascina col dito per ruotare la vista 3D</div>
+    <canvas id="simCanvas"></canvas>
+    <div class="status-badge" id="statusBadge">
+      <span id="statusText">Il filo viene tirato verso il lato orizzontale della calamita</span>
+      <span id="forceIntensity" style="color:#d97706;">Campo B: 100%</span>
+    </div>
+  </div>
+
+  <div class="controls-card">
+    <div class="control-section">
+      <div class="section-title">Posizione Calamita rispetto al Filo</div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span>Avanti / Indietro (profondità)</span>
+          <span id="valZ">Dentro i poli (0 cm)</span>
+        </div>
+        <input type="range" id="sliderZ" min="-140" max="140" value="0" step="1">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span>Sinistra / Destra (tra S e N)</span>
+          <span id="valX">Centrato (0 cm)</span>
+        </div>
+        <input type="range" id="sliderX" min="-120" max="120" value="0" step="1">
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button style="flex:1; font-size:0.82rem;" onclick="resetPosition()">Centra Calamita</button>
+        <button style="flex:1; font-size:0.82rem;" onclick="moveOutside()">Allontana Calamita</button>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="section-title">Regola della Mano Destra</div>
+      <div class="hand-box">
+        <canvas id="handCanvas" width="280" height="150" style="width:100%; max-width:280px; height:auto;"></canvas>
+        <div class="hand-caption" id="handCaption">
+          <strong>Pollice</strong> = corrente <b>i</b> (verso l'alto)<br>
+          <strong>Indice</strong> = campo <b>B</b> (da Nord a Sud, verso sinistra)<br>
+          <strong>Medio</strong> = forza <b>F</b> (verso il fondo della calamita)
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="section-title">Legenda Vettori &amp; Poli</div>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="dot" style="background:var(--current-i)"></span> Corrente <strong>i</strong></div>
+        <div class="legend-item"><span class="dot" style="background:var(--field-b)"></span> Campo <strong>B</strong> (N&rarr;S)</div>
+        <div class="legend-item"><span class="dot" style="background:var(--force-f)"></span> Forza <strong>F</strong></div>
+        <div class="legend-item"><span class="dot" style="background:var(--north)"></span> Nord / <span class="dot" style="background:var(--south)"></span> Sud</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const simCanvas = document.getElementById('simCanvas');
+const ctx = simCanvas.getContext('2d');
+const handCanvas = document.getElementById('handCanvas');
+const hctx = handCanvas.getContext('2d');
+
+let state = {
+  currentDir: 1, // 1 = verso l'alto (Caso 1), -1 = verso il basso (Caso 2)
+  magX: 0,       // spostamento orizzontale calamita rispetto al filo
+  magZ: 0,       // spostamento in profondità calamita rispetto al filo
+  rotY: -0.42,   // angolo vista 3D
+  rotX: 0.36
+};
+
+const sliderX = document.getElementById('sliderX');
+const sliderZ = document.getElementById('sliderZ');
+
+sliderX.addEventListener('input', () => {
+  state.magX = parseFloat(sliderX.value);
+  updateUI();
+});
+
+sliderZ.addEventListener('input', () => {
+  state.magZ = parseFloat(sliderZ.value);
+  updateUI();
+});
+
+function setCase(c) {
+  state.currentDir = (c === 1) ? 1 : -1;
+  document.getElementById('btnCase1').classList.toggle('active', c === 1);
+  document.getElementById('btnCase2').classList.toggle('active', c === 2);
+  updateUI();
+}
+
+function resetPosition() {
+  state.magX = 0;
+  state.magZ = 0;
+  sliderX.value = 0;
+  sliderZ.value = 0;
+  updateUI();
+}
+
+function moveOutside() {
+  state.magX = 0;
+  state.magZ = -115;
+  sliderX.value = 0;
+  sliderZ.value = -115;
+  updateUI();
+}
+
+// Controllo rotazione touch / mouse sul canvas 3D
+let isDragging = false;
+let lastX = 0, lastY = 0;
+
+simCanvas.addEventListener('pointerdown', (e) => {
+  isDragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  simCanvas.setPointerCapture(e.pointerId);
+});
+
+simCanvas.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  state.rotY += dx * 0.008;
+  state.rotX = Math.max(-0.2, Math.min(1.15, state.rotX + dy * 0.008));
+  lastX = e.clientX;
+  lastY = e.clientY;
+  draw();
+});
+
+simCanvas.addEventListener('pointerup', () => { isDragging = false; });
+simCanvas.addEventListener('pointercancel', () => { isDragging = false; });
+
+function computeFieldStrength() {
+  // Il traferro (zona uniforme tra i bracci S e N) copre:
+  // X in [-68, 68] relativo alla calamita, Z in [-55, 65] relativo alla calamita
+  // Il filo è fisso in (0, y, 0), quindi la posizione del filo rispetto alla calamita è (-magX, -magZ)
+  const relX = -state.magX;
+  const relZ = -state.magZ;
+
+  // Controllo collisione/presenza nel traferro
+  const insideX = Math.exp(-Math.pow(Math.max(0, Math.abs(relX) - 62) / 28, 2));
+  const insideZ = (relZ >= -50 && relZ <= 65)
+    ? 1.0
+    : Math.exp(-Math.pow((relZ < -50 ? -50 - relZ : relZ - 65) / 26, 2));
+
+  return Math.max(0, Math.min(1, insideX * insideZ));
+}
+
+function updateUI() {
+  const zCm = (state.magZ / 10).toFixed(1);
+  const xCm = (state.magX / 10).toFixed(1);
+  document.getElementById('valZ').textContent = `${zCm} cm`;
+  document.getElementById('valX').textContent = `${xCm} cm`;
+
+  const strength = computeFieldStrength();
+  const pct = Math.round(strength * 100);
+  document.getElementById('forceIntensity').textContent = `Campo B sul filo: ${pct}%`;
+
+  const statusText = document.getElementById('statusText');
+  if (pct < 12) {
+    statusText.textContent = "Filo fuori dal campo magnetico: nessuna forza (F ≈ 0)";
+    statusText.style.color = "#64748b";
+  } else if (state.currentDir === 1) {
+    statusText.textContent = "Caso 1 (i ↑): il filo viene tirato verso il lato orizzontale (indietro)";
+    statusText.style.color = "#0f172a";
+  } else {
+    statusText.textContent = "Caso 2 (i ↓): il filo viene respinto verso l'esterno (avanti)";
+    statusText.style.color = "#0f172a";
+  }
+
+  drawHandDiagram();
+  draw();
+}
+
+// Proiezione 3D isometrica/prospettica semplice
+function project(x, y, z, cx, cy, scale) {
+  // Rotazione attorno ad asse Y
+  const cosY = Math.cos(state.rotY);
+  const sinY = Math.sin(state.rotY);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+
+  // Rotazione attorno ad asse X
+  const cosX = Math.cos(state.rotX);
+  const sinX = Math.sin(state.rotX);
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+
+  const fov = 620;
+  const persp = fov / (fov + z2);
+  return {
+    x: cx + x1 * scale * persp,
+    y: cy - y2 * scale * persp,
+    depth: z2
+  };
+}
+
+function drawBox3D(cx, cy, scale, x0, x1, y0, y1, z0, z1, fillTop, fillFront, fillSide, strokeColor) {
+  const pts = [
+    project(x0, y0, z0, cx, cy, scale), // 0: minX, minY, minZ
+    project(x1, y0, z0, cx, cy, scale), // 1: maxX, minY, minZ
+    project(x1, y1, z0, cx, cy, scale), // 2: maxX, maxY, minZ
+    project(x0, y1, z0, cx, cy, scale), // 3: minX, maxY, minZ
+    project(x0, y0, z1, cx, cy, scale), // 4: minX, minY, maxZ
+    project(x1, y0, z1, cx, cy, scale), // 5: maxX, minY, maxZ
+    project(x1, y1, z1, cx, cy, scale), // 6: maxX, maxY, maxZ
+    project(x0, y1, z1, cx, cy, scale)  // 7: minX, maxY, maxZ
+  ];
+
+  const faces = [
+    { idx: [3, 2, 6, 7], color: fillTop },   // Top
+    { idx: [0, 1, 2, 3], color: fillFront }, // Front (-Z)
+    { idx: [4, 5, 6, 7], color: fillFront }, // Back (+Z)
+    { idx: [1, 5, 6, 2], color: fillSide },  // Right (+X)
+    { idx: [0, 4, 7, 3], color: fillSide }   // Left (-X)
+  ];
+
+  // Ordina facce per profondità media
+  faces.sort((a, b) => {
+    const da = a.idx.reduce((s, i) => s + pts[i].depth, 0) / 4;
+    const db = b.idx.reduce((s, i) => s + pts[i].depth, 0) / 4;
+    return db - da;
+  });
+
+  faces.forEach(f => {
+    ctx.beginPath();
+    f.idx.forEach((pIdx, k) => {
+      if (k === 0) ctx.moveTo(pts[pIdx].x, pts[pIdx].y);
+      else ctx.lineTo(pts[pIdx].x, pts[pIdx].y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = f.color;
+    ctx.fill();
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  });
+}
+
+function drawArrow2D(context, x1, y1, x2, y2, color, width = 3.2, label = "", labelOffset = {x: 8, y: -6}) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 4) return;
+
+  const angle = Math.atan2(dy, dx);
+  const headLen = Math.min(13, len * 0.42);
+
+  context.save();
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = width;
+  context.lineCap = "round";
+
+  context.beginPath();
+  context.moveTo(x1, y1);
+  context.lineTo(x2, y2);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(x2, y2);
+  context.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+  context.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+  context.closePath();
+  context.fill();
+
+  if (label) {
+    context.font = "bold 15px -apple-system, sans-serif";
+    context.fillText(label, x2 + labelOffset.x, y2 + labelOffset.y);
+  }
+  context.restore();
+}
+
+function draw() {
+  const rect = simCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  if (simCanvas.width !== Math.round(rect.width * dpr) || simCanvas.height !== Math.round(rect.height * dpr)) {
+    simCanvas.width = Math.round(rect.width * dpr);
+    simCanvas.height = Math.round(rect.height * dpr);
+  }
+
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+
+  // Sfondo a quadretti stile quaderno di fisica
+  ctx.fillStyle = "#fafcff";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.lineWidth = 1;
+  const grid = 24;
+  for (let x = 0; x < W; x += grid) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += grid) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  const cx = W * 0.5;
+  const cy = H * 0.52;
+  const scale = Math.min(W, H) / 410;
+
+  const mx = state.magX;
+  const mz = state.magZ;
+
+  // Disegno Calamita a U (ferro di cavallo) in 3D:
+  // Braccio sinistro = Sud (verde), Braccio destro = Nord (rosso), Base posteriore (+Z) divisa a metà
+  const armW = 34;
+  const outerX = 105;
+  const innerX = outerX - armW; // 71
+  const zFront = -65;
+  const zBackInner = 50;
+  const zBackOuter = 85;
+  const yBot = -16;
+  const yTop = 16;
+
+  // 1. Parte Sud (sinistra, verde)
+  drawBox3D(cx, cy, scale, mx - outerX, mx - innerX, yBot, yTop, zFront, zBackOuter,
+    "#bbf7d0", "#86efac", "#4ade80", "#15803d");
+  drawBox3D(cx, cy, scale, mx - innerX, mx, yBot, yTop, zBackInner, zBackOuter,
+    "#bbf7d0", "#86efac", "#4ade80", "#15803d");
+
+  // 2. Parte Nord (destra, rossa)
+  drawBox3D(cx, cy, scale, mx + innerX, mx + outerX, yBot, yTop, zFront, zBackOuter,
+    "#fecaca", "#fca5a5", "#f87171", "#b91c1c");
+  drawBox3D(cx, cy, scale, mx, mx + innerX, yBot, yTop, zBackInner, zBackOuter,
+    "#fecaca", "#fca5a5", "#f87171", "#b91c1c");
+
+  // Etichette S e N sopra i poli
+  const pS = project(mx - (outerX + innerX) / 2, yTop + 14, zFront + 15, cx, cy, scale);
+  const pN = project(mx + (outerX + innerX) / 2, yTop + 14, zFront + 15, cx, cy, scale);
+  ctx.font = "bold 18px sans-serif";
+  ctx.fillStyle = "#15803d";
+  ctx.fillText("S", pS.x - 6, pS.y);
+  ctx.fillStyle = "#b91c1c";
+  ctx.fillText("N", pN.x - 6, pN.y);
+
+  // Linee di campo magnetico B (da N verso S, quindi da +X verso -X)
+  [-38, -8, 22].forEach(zOff => {
+    const bStart = project(mx + innerX - 4, 2, mz + zOff, cx, cy, scale);
+    const bEnd   = project(mx - innerX + 4, 2, mz + zOff, cx, cy, scale);
+    drawArrow2D(ctx, bStart.x, bStart.y, bEnd.x, bEnd.y, "#d946ef", 2.2, zOff === -8 ? "B" : "", {x: -14, y: -8});
+  });
+
+  // Filo conduttore verticale fisso in X=0, Z=0 (con lieve deflessione elastica dovuta a F!)
+  const strength = computeFieldStrength();
+  // Nel Caso 1 (i verso l'alto, B verso -X): i x B = (+Y) x (-X) = +Z (verso il lato orizzontale della calamita!)
+  // Nel Caso 2 (i verso il basso, B verso -X): i x B = (-Y) x (-X) = -Z (verso l'esterno, respinto!)
+  const forceSignZ = state.currentDir; // +1 = verso +Z (indietro), -1 = verso -Z (avanti)
+  const deflectZ = forceSignZ * strength * 26;
+
+  const wireTop = project(0, 145, 0, cx, cy, scale);
+  const wireBot = project(0, -135, 0, cx, cy, scale);
+  const wireMid = project(0, 0, deflectZ, cx, cy, scale);
+
+  // Disegno filo curvo sotto l'azione della forza
+  ctx.save();
+  ctx.strokeStyle = "#1d4ed8";
+  ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.moveTo(wireTop.x, wireTop.y);
+  ctx.quadraticCurveTo(wireMid.x, wireMid.y, wireBot.x, wireBot.y);
+  ctx.stroke();
+  ctx.restore();
+
+  // Batteria schematica in basso a sinistra collegata al filo
+  const batPos = project(-125, -125, -35, cx, cy, scale);
+  ctx.save();
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(wireTop.x, wireTop.y);
+  ctx.bezierCurveTo(wireTop.x - 110, wireTop.y - 25, batPos.x - 35, batPos.y - 70, batPos.x - 12, batPos.y - 8);
+  ctx.moveTo(wireBot.x, wireBot.y);
+  ctx.quadraticCurveTo(wireBot.x - 40, batPos.y + 10, batPos.x + 14, batPos.y - 8);
+  ctx.stroke();
+
+  // Corpo batteria
+  ctx.fillStyle = "#e2e8f0";
+  ctx.fillRect(batPos.x - 20, batPos.y - 10, 40, 22);
+  ctx.strokeRect(batPos.x - 20, batPos.y - 10, 40, 22);
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 12px sans-serif";
+  if (state.currentDir === 1) {
+    ctx.fillText("−", batPos.x - 14, batPos.y + 5);
+    ctx.fillText("+", batPos.x + 6, batPos.y + 5);
+  } else {
+    ctx.fillText("+", batPos.x - 14, batPos.y + 5);
+    ctx.fillText("−", batPos.x + 6, batPos.y + 5);
+  }
+  ctx.restore();
+
+  // Vettore Corrente i accanto al filo
+  const iBase = project(14, state.currentDir === 1 ? 35 : 85, deflectZ * 0.4, cx, cy, scale);
+  const iTip  = project(14, state.currentDir === 1 ? 85 : 35, deflectZ * 0.4, cx, cy, scale);
+  drawArrow2D(ctx, iBase.x, iBase.y, iTip.x, iTip.y, "#2563eb", 3.5, "i", {x: 8, y: 4});
+
+  // Vettore Forza F applicato al filo (proporzionale a strength)
+  if (strength > 0.08) {
+    const fOrigin = project(0, 0, deflectZ * 0.6, cx, cy, scale);
+    const fEnd    = project(0, 0, deflectZ * 0.6 + forceSignZ * (25 + strength * 55), cx, cy, scale);
+    drawArrow2D(ctx, fOrigin.x, fOrigin.y, fEnd.x, fEnd.y, "#f59e0b", 4.2, "F", {x: 10, y: 4});
+  }
+
+  ctx.restore();
+}
+
+function drawHandDiagram() {
+  const W = handCanvas.width;
+  const H = handCanvas.height;
+  hctx.clearRect(0, 0, W, H);
+
+  const isUp = state.currentDir === 1;
+  const cx = 175;
+  const cy = isUp ? 88 : 62;
+
+  // Palmo stilizzato chiaro e leggibile
+  hctx.save();
+  hctx.fillStyle = "#fde68a";
+  hctx.strokeStyle = "#92400e";
+  hctx.lineWidth = 2;
+
+  // Polso e palmo
+  hctx.beginPath();
+  hctx.roundRect(cx - 10, cy - 22, 58, 44, 16);
+  hctx.fill();
+  hctx.stroke();
+
+  // Pollice (Direzione corrente i: su nel Caso 1, giù nel Caso 2)
+  const thumbDir = isUp ? -1 : 1;
+  hctx.beginPath();
+  hctx.roundRect(cx - 4, isUp ? cy - 58 : cy + 12, 16, 46, 8);
+  hctx.fill();
+  hctx.stroke();
+
+  // Indice (Direzione campo B: sempre verso sinistra, da N a S)
+  hctx.beginPath();
+  hctx.roundRect(cx - 72, cy - 12, 68, 15, 7.5);
+  hctx.fill();
+  hctx.stroke();
+
+  // Medio (Direzione forza F: in avanti-sinistra nel Caso 1, indietro-sinistra nel Caso 2)
+  hctx.save();
+  hctx.translate(cx - 4, cy + (isUp ? 8 : -8));
+  hctx.rotate(isUp ? -0.45 : 0.45);
+  hctx.beginPath();
+  hctx.roundRect(-64, -7, 66, 15, 7.5);
+  hctx.fill();
+  hctx.stroke();
+  hctx.restore();
+
+  // Frecce vettoriali accanto alle dita
+  // Pollice -> i
+  drawArrow2D(hctx, cx + 24, cy + thumbDir * 15, cx + 24, cy + thumbDir * 58, "#2563eb", 3, "i", {x: 8, y: 5});
+  // Indice -> B
+  drawArrow2D(hctx, cx - 25, cy - 22, cx - 78, cy - 22, "#d946ef", 3, "B", {x: -16, y: 4});
+  // Medio -> F
+  if (isUp) {
+    drawArrow2D(hctx, cx - 18, cy + 22, cx - 72, cy + 48, "#f59e0b", 3, "F", {x: -18, y: 8});
+  } else {
+    drawArrow2D(hctx, cx - 18, cy - 26, cx - 72, cy - 50, "#f59e0b", 3, "F", {x: -18, y: 4});
+  }
+
+  hctx.restore();
+
+  document.getElementById('handCaption').innerHTML = isUp
+    ? `<strong>Pollice</strong> = corrente <b>i</b> (verso l'alto)<br><strong>Indice</strong> = campo <b>B</b> (da N a S, sinistra)<br><strong>Medio</strong> = forza <b>F</b> (tira verso il fondo)`
+    : `<strong>Pollice</strong> = corrente <b>i</b> (verso il basso)<br><strong>Indice</strong> = campo <b>B</b> (da N a S, sinistra)<br><strong>Medio</strong> = forza <b>F</b> (respinge in avanti)`;
+}
+
+window.addEventListener('resize', draw);
+updateUI();
+</script>
+</body>
+</html>
